@@ -2,4 +2,10 @@ spring:
   data:
     mongodb:
       uri: mongodb+srv://admin:admin@user.gzuhqty.mongodb.net/?retryWrites=true&w=majority
-      database: sample_analytics
+      database: AuthenticationServiceSystemDataBase
+  security:
+    user:
+      name: Test
+      password: 1234
+
+
