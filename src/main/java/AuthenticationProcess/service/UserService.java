@@ -3,13 +3,10 @@ package AuthenticationProcess.service;
 import AuthenticationProcess.entity.UserEntity;
 import AuthenticationProcess.model.UserModel;
 import AuthenticationProcess.repository.UserRepository;
-import jdk.jshell.Snippet;
-import org.apache.catalina.LifecycleState;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.lang.annotation.Repeatable;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,6 +14,8 @@ import java.util.UUID;
 public class UserService {
     @Autowired
     private UserRepository userrepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // create,read,update,delete
     public String AddUser(UserModel user){
@@ -24,7 +23,7 @@ public class UserService {
         userinfo.setUid(UUID.randomUUID().toString().split("-")[0]);
         userinfo.setNid(user.getNid());
         userinfo.setUsername(user.getUsername());
-        userinfo.setPassword(user.getPassword());
+        userinfo.setPassword(passwordEncoder.encode(user.getPassword()));
         userinfo.setAge(user.getAge());
         userinfo.setAddress(user.getAddress());
 
