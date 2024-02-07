@@ -4,6 +4,10 @@ import AuthenticationProcess.entity.UserEntity;
 import AuthenticationProcess.model.UserModel;
 import AuthenticationProcess.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -11,11 +15,20 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
     @Autowired
-    private UserRepository userrepository;
+    private UserRepository userRepository;
+    @Lazy
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    // test Auth Jwt Service
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        Optional<UserEntity> userInfo = userRepository.findByUsername(username);
+        return userInfo.map(UserInfoDetails::new)
+                .orElseThrow(()-> new UsernameNotFoundException("User not found" + username));
+    }
 
     // create,read,update,delete
     public String AddUser(UserModel user){
@@ -26,17 +39,18 @@ public class UserService {
         userinfo.setPassword(passwordEncoder.encode(user.getPassword()));
         userinfo.setAge(user.getAge());
         userinfo.setAddress(user.getAddress());
+        userinfo.setRoles(user.getRoles());
 
-        userrepository.save(userinfo);
+        userRepository.save(userinfo);
         return "SUCCESS";
     }
 
     public Object FindAll(){
-        return userrepository.findAll();
+        return userRepository.findAll();
     }
 
     public UserModel FindById(String id){
-        Optional<UserEntity> userInfo = userrepository.findById(id);
+        Optional<UserEntity> userInfo = userRepository.findById(id);
 
         if(userInfo.isPresent()){
             UserEntity user = userInfo.get();
@@ -55,7 +69,7 @@ public class UserService {
     }
 
     public String UpdateUser(UserModel updateuser) {
-        Optional<UserEntity> userInfo = userrepository.findById(updateuser.getUid());
+        Optional<UserEntity> userInfo = userRepository.findById(updateuser.getUid());
 
         if (userInfo.isPresent()) {
             UserEntity userRes = new UserEntity();
@@ -66,7 +80,7 @@ public class UserService {
             userRes.setAge(updateuser.getAge());
             userRes.setAddress(updateuser.getAddress());
 
-            userrepository.save(userRes);
+            userRepository.save(userRes);
             return "EDITE INFO SUCCESS";
         } else {
             throw new IllegalArgumentException("Invalid This Uid: " + updateuser.getUid());
@@ -74,10 +88,10 @@ public class UserService {
     }
 
     public String DeleteById(String id) {
-        Optional<UserEntity> user = userrepository.findById(id);
+        Optional<UserEntity> user = userRepository.findById(id);
         if (user.isPresent()) {
             UserEntity userDel = user.get();
-            userrepository.delete(userDel);
+            userRepository.delete(userDel);
 
             return "DELETE SUCCESS";
         } else {
@@ -85,7 +99,4 @@ public class UserService {
             throw new IllegalArgumentException("Invalid id: " + id);
         }
     }
-
-
-
 }
