@@ -4,6 +4,11 @@ import AuthenticationProcess.entity.AuthRequest;
 import AuthenticationProcess.model.UserModel;
 import AuthenticationProcess.service.JwtService;
 import AuthenticationProcess.service.UserService;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +24,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/UserService")
+@SecurityRequirement(name = "bearerAuth")
+@Tag(name = "USER API MANAGEMENT")
 public class UserController {
     @Autowired
     private UserService userservice;
@@ -26,6 +33,21 @@ public class UserController {
     private AuthenticationManager authenticationManager;
     @Autowired
     private JwtService jwtService;
+
+    @Operation(  // รายละเอียดเอาไว้แจ้งกับ AIP แต่ละเส้น
+            description = "Get Token For Another API",
+            summary = "Login For Get Token",
+            responses = {
+                    @ApiResponse(
+                            description = "Success",
+                            responseCode = "200"
+                    ),
+                    @ApiResponse(
+                            description = "Unauthorized / Invaild Token",
+                            responseCode = "403"
+                    )
+            }
+    )
 
     @PostMapping("/login")
     public String login(@RequestBody AuthRequest authRequest){
@@ -37,6 +59,7 @@ public class UserController {
         }
 
     }
+    @Hidden
     @GetMapping("/hello")
     public ResponseEntity<String> sayHello(){
         return ResponseEntity.ok("Hello this my project");
@@ -47,17 +70,17 @@ public class UserController {
         return userservice.AddUser(user);
     }
 
-    @GetMapping
+    @GetMapping("/findAll")
     public Object findAll(){
         return userservice.FindAll();
     }
 
-    @GetMapping("/{UID}")
+    @GetMapping("/findById/{UID}")
     public UserModel findByUID(@PathVariable String UID){
         return userservice.FindById(UID);
     }
 
-    @PutMapping
+    @PutMapping("edit")
     public String updateUser(@RequestBody UserModel userupdate){
         return userservice.UpdateUser(userupdate);
     }
