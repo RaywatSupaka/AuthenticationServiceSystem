@@ -32,39 +32,49 @@ public class UserService implements UserDetailsService {
 
     // create,read,update,delete
     public String AddUser(UserModel user){
-        UserEntity userinfo = new UserEntity();
-        userinfo.setUid(UUID.randomUUID().toString().split("-")[0]);
-        userinfo.setNid(user.getNid());
-        userinfo.setUsername(user.getUsername());
-        userinfo.setPassword(passwordEncoder.encode(user.getPassword()));
-        userinfo.setAge(user.getAge());
-        userinfo.setAddress(user.getAddress());
-        userinfo.setRoles(user.getRoles());
 
-        userRepository.save(userinfo);
-        return "SUCCESS";
+        String validationMessage = validateUserData(user);
+        if (!validationMessage.isEmpty()) {
+            return validationMessage;
+        }else {
+            UserEntity userinfo = new UserEntity();
+
+            userinfo.setUid(UUID.randomUUID().toString().split("-")[0]);
+            userinfo.setNid(user.getNid());
+            userinfo.setUsername(user.getUsername());
+            //userinfo.setPassword(passwordEncoder.encode(user.getPassword()));
+            userinfo.setPassword(user.getPassword());
+            userinfo.setAge(user.getAge());
+            userinfo.setAddress(user.getAddress());
+            userinfo.setRoles(user.getRoles());
+
+            userRepository.save(userinfo);
+            return "SUCCESS";
+        }
     }
 
     public Object FindAll(){
         return userRepository.findAll();
     }
 
-    public UserModel FindById(String id){
-        Optional<UserEntity> userInfo = userRepository.findById(id);
+    public UserModel findByUsername(String username){
+        Optional<UserEntity> userInfo = userRepository.findByUsername(username);
 
         if(userInfo.isPresent()){
             UserEntity user = userInfo.get();
 
             UserModel userRes = new UserModel();
+            userRes.setUid(user.getUid());
             userRes.setNid(user.getNid());
             userRes.setUsername(user.getUsername());
             userRes.setPassword(user.getPassword());
             userRes.setAge(user.getAge());
             userRes.setAddress(user.getAddress());
+            userRes.setRoles(user.getRoles());
 
             return userRes;
         } else {
-            throw new IllegalArgumentException("Invalid id: " + id);
+            throw new IllegalArgumentException("Invalid id: " + username);
         }
     }
 
@@ -76,7 +86,7 @@ public class UserService implements UserDetailsService {
             userRes.setUid(updateuser.getUid());
             userRes.setNid(updateuser.getNid());
             userRes.setUsername(updateuser.getUsername());
-            userRes.setPassword(updateuser.getPassword());
+            userRes.setPassword(userInfo.get().getPassword());
             userRes.setAge(updateuser.getAge());
             userRes.setAddress(updateuser.getAddress());
 
@@ -99,4 +109,53 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("Invalid id: " + id);
         }
     }
+
+    private String validateUserData(UserModel user) {
+        StringBuilder validationMessage = new StringBuilder();
+
+        // ตรวจสอบ null
+        if (user.getNid() == null) {
+            validationMessage.append("Nid is null. ");
+        }
+        if (user.getUsername() == null) {
+            validationMessage.append("Username is null. ");
+        }
+        if (user.getPassword() == null) {
+            validationMessage.append("Password is null. ");
+        }
+        if (user.getAge() == null) {
+            validationMessage.append("Age is null. ");
+        }
+        if (user.getAddress() == null) {
+            validationMessage.append("Address is null. ");
+        }
+        if (user.getRoles() == null) {
+            validationMessage.append("Roles is null. ");
+        }
+
+        // ตรวจสอบความยาว
+        if (user.getNid().length() > 13) {
+            validationMessage.append("Nid exceeds the maximum length. ");
+        }
+        if (user.getUsername().length() > 50) {
+            validationMessage.append("Username exceeds the maximum length. ");
+        }
+        if (user.getPassword().length() > 15) {
+            validationMessage.append("Password exceeds the maximum length. ");
+        }
+        if (user.getAge().toString().length() > 3) {
+            validationMessage.append("Age exceeds the maximum length. ");
+        }
+        if (user.getAddress().length() > 75) {
+            validationMessage.append("Address exceeds the maximum length. ");
+        }
+        if (user.getRoles().length() > 10) {
+            validationMessage.append("Roles exceeds the maximum length. ");
+        }
+
+        // ตรวจสอบความถูกต้องเพิ่มเติม (ตามความต้องการของคุณ)
+
+        return validationMessage.toString();
+    }
+
 }

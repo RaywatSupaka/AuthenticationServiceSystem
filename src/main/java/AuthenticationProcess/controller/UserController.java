@@ -36,7 +36,7 @@ public class UserController {
 
     @Operation(  // รายละเอียดเอาไว้แจ้งกับ AIP แต่ละเส้น
             description = "Get Token For Another API",
-            summary = "Login For Get Token"
+            summary = "ไม่ใช้ Token"
 //            ,responses = {
 //                    @ApiResponse(
 //                            description = "Success",
@@ -67,9 +67,19 @@ public class UserController {
         return ResponseEntity.ok("Hello this my project");
     }
 
-    @PostMapping("/adduser")
-    public String createUser(@RequestBody UserModel user){
-        return userservice.AddUser(user);
+    @Operation(  // รายละเอียดเอาไว้แจ้งกับ AIP แต่ละเส้น
+            description = "Get Token For Another API",
+            summary = "ไม่ใช้ Token"
+    )
+
+    @PostMapping("/register")
+    public JwtResponse createUser(@RequestBody UserModel user) throws Exception {
+        try {
+            String dataRes = userservice.AddUser(user);
+            return new JwtResponse(dataRes,true);
+        } catch (Exception e){
+            throw new Exception("Failed to execute : " + e.getMessage());
+        }
     }
 
     @GetMapping("/findAll")
@@ -77,9 +87,9 @@ public class UserController {
         return userservice.FindAll();
     }
 
-    @GetMapping("/findById/{UID}")
-    public UserModel findByUID(@PathVariable String UID){
-        return userservice.FindById(UID);
+    @GetMapping("/findById/{username}")
+    public UserModel findByUID(@PathVariable String username){
+        return userservice.findByUsername(username);
     }
 
     @PutMapping("edit")

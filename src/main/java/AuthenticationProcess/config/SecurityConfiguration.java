@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -25,6 +26,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfiguration {
     @Autowired
     private JwtFilter jwtFilter;
+    
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    public SecurityConfiguration() {
+    }
+
     @Bean
     public UserDetailsService userDetailsService(){
         return new UserService();
@@ -35,7 +43,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth->auth
                         .requestMatchers(
                                 "/UserService/login",
-                                "/UserService/adduser",
+                                "/UserService/register",
                                 "/UserService/hello",
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",
@@ -66,5 +74,5 @@ public class SecurityConfiguration {
         return config.getAuthenticationManager();
     }
 
-
 }
+

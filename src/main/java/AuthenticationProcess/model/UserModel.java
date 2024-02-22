@@ -10,7 +10,7 @@ public class UserModel {
     private String nid;
     private String username;
     private String password;
-    private int age;
+    private Integer age;
     private String address;
     private String roles;
 }
