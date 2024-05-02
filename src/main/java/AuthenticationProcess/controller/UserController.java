@@ -13,12 +13,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:4200")
@@ -55,16 +59,10 @@ public class UserController {
             Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.getUserName(), authRequest.getPassword()));
             DataRes token = new DataRes(jwtService.generateToken(authenticate.getName()));
             return new JwtResponse("Login Success",true, token);
-
         } catch (AuthenticationException ex) {
             return new JwtResponse("Login Fail", false);
         }
 
-    }
-    @Hidden
-    @GetMapping("/hello")
-    public ResponseEntity<String> sayHello(){
-        return ResponseEntity.ok("Hello this my project");
     }
 
     @Operation(  // รายละเอียดเอาไว้แจ้งกับ AIP แต่ละเส้น
@@ -73,19 +71,23 @@ public class UserController {
     )
 
     @PostMapping("/register")
-    public JwtResponse createUser(@RequestBody UserModel user) throws Exception {
+    public ResponseEntity createUser(@RequestBody UserModel user) throws Exception {
         try {
             String dataRes = userservice.AddUser(user);
-            return new JwtResponse(dataRes,true);
+            if (dataRes.isEmpty()) {
+                return ResponseEntity.ok("User added successfully.");
+            } else {
+                // กรณีมีข้อผิดพลาด
+                Map<String, Object> response = new HashMap<>();
+                response.put("error", "Validation failed");
+                response.put("details", dataRes);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
         } catch (Exception e){
             throw new Exception("Failed to execute : " + e.getMessage());
         }
     }
 
-    @GetMapping("/findAll")
-    public Object findAll(){
-        return userservice.FindAll();
-    }
 
     @GetMapping("/findById/{username}")
     public UserModel findByUID(@PathVariable String username){
@@ -97,8 +99,23 @@ public class UserController {
         return userservice.UpdateUser(userupdate);
     }
 
-    @DeleteMapping("/{UID}")
-    public String DeleteById(@PathVariable String UID){
-        return userservice.DeleteById(UID);
+
+    @GetMapping("/validate")
+    public String validateToken(@RequestHeader("Authorization") String authHeader) {
+        String userName = null;
+        boolean isValid = false; // กำหนดให้ isValid เป็นเท็จเริ่มต้น
+
+        if(authHeader != null && authHeader.startsWith("Bearer")){
+            String token = authHeader.substring(7); // ดึง token จาก Authorization header
+            userName = jwtService.extractUsername(token); // ดึงชื่อผู้ใช้จาก token
+            isValid = jwtService.validateToken(token, userName); // ตรวจสอบความถูกต้องของ token
+        }
+        if (isValid) {
+            return "Token is valid.";
+        } else {
+            return "Token is not valid.";
+        }
     }
+
+
 }

@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
+
 @Document(collection = "User")
 @Data
 @AllArgsConstructor
@@ -19,4 +21,5 @@ public class UserEntity {
     private int age;
     private String address;
     private String roles;
+    private Date ts;
 }

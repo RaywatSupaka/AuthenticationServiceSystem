@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,28 +35,29 @@ public class UserService implements UserDetailsService {
     public String AddUser(UserModel user){
 
         String validationMessage = validateUserData(user);
+        boolean validateduplicate = validateduplicate(user);
         if (!validationMessage.isEmpty()) {
             return validationMessage;
+        }else if (validateduplicate) {
+            return "Username is already used ";
         }else {
             UserEntity userinfo = new UserEntity();
 
             userinfo.setUid(UUID.randomUUID().toString().split("-")[0]);
             userinfo.setNid(user.getNid());
             userinfo.setUsername(user.getUsername());
-            //userinfo.setPassword(passwordEncoder.encode(user.getPassword()));
-            userinfo.setPassword(user.getPassword());
+            userinfo.setPassword(passwordEncoder.encode(user.getPassword()));
+            //userinfo.setPassword(user.getPassword());
             userinfo.setAge(user.getAge());
             userinfo.setAddress(user.getAddress());
-            userinfo.setRoles(user.getRoles());
+            userinfo.setRoles("USER");
+            userinfo.setTs(new Date());
 
             userRepository.save(userinfo);
-            return "SUCCESS";
+            return validationMessage;
         }
     }
 
-    public Object FindAll(){
-        return userRepository.findAll();
-    }
 
     public UserModel findByUsername(String username){
         Optional<UserEntity> userInfo = userRepository.findByUsername(username);
@@ -89,6 +91,7 @@ public class UserService implements UserDetailsService {
             userRes.setPassword(userInfo.get().getPassword());
             userRes.setAge(updateuser.getAge());
             userRes.setAddress(updateuser.getAddress());
+            userRes.setRoles(userInfo.get().getRoles());
 
             userRepository.save(userRes);
             return "EDITE INFO SUCCESS";
@@ -97,41 +100,34 @@ public class UserService implements UserDetailsService {
         }
     }
 
-    public String DeleteById(String id) {
-        Optional<UserEntity> user = userRepository.findById(id);
-        if (user.isPresent()) {
-            UserEntity userDel = user.get();
-            userRepository.delete(userDel);
 
-            return "DELETE SUCCESS";
-        } else {
-            // จัดการกรณีที่ไม่พบข้อมูลที่ต้องการลบ
-            throw new IllegalArgumentException("Invalid id: " + id);
-        }
+    public boolean validateduplicate(UserModel user){
+        Optional<UserEntity> users = userRepository.findByUsername(user.getUsername());
+        return users.isPresent();
     }
 
     private String validateUserData(UserModel user) {
         StringBuilder validationMessage = new StringBuilder();
 
         // ตรวจสอบ null
-        if (user.getNid() == null) {
+        if (user.getNid() == null || user.getNid().isEmpty()) {
             validationMessage.append("Nid is null. ");
         }
-        if (user.getUsername() == null) {
+        if (user.getUsername() == null || user.getUsername().isEmpty()) {
             validationMessage.append("Username is null. ");
         }
-        if (user.getPassword() == null) {
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
             validationMessage.append("Password is null. ");
         }
         if (user.getAge() == null) {
             validationMessage.append("Age is null. ");
         }
-        if (user.getAddress() == null) {
+        if (user.getAddress() == null || user.getAddress().isEmpty()) {
             validationMessage.append("Address is null. ");
         }
-        if (user.getRoles() == null) {
-            validationMessage.append("Roles is null. ");
-        }
+//        if (user.getRoles() == null) {
+//            validationMessage.append("Roles is null. ");
+//        }
 
         // ตรวจสอบความยาว
         if (user.getNid().length() > 13) {
@@ -149,9 +145,9 @@ public class UserService implements UserDetailsService {
         if (user.getAddress().length() > 75) {
             validationMessage.append("Address exceeds the maximum length. ");
         }
-        if (user.getRoles().length() > 10) {
-            validationMessage.append("Roles exceeds the maximum length. ");
-        }
+//        if (user.getRoles().length() > 10) {
+//            validationMessage.append("Roles exceeds the maximum length. ");
+//        }
 
         // ตรวจสอบความถูกต้องเพิ่มเติม (ตามความต้องการของคุณ)
 

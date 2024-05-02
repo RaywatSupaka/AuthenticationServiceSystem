@@ -1,10 +1,14 @@
 package AuthenticationProcess.service;
 
+import AuthenticationProcess.entity.UserEntity;
+import AuthenticationProcess.model.UserModel;
+import AuthenticationProcess.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -12,15 +16,20 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 @Component
 public class JwtService {
     private static final String SECERET = "!@#$FDGSDFGSGSGSGSHSHSHSSHGFFDSGSFGSSGHSDFSDFSFSFSFSDFSFSFSF";
+    @Autowired
+    private UserService userservice;
 
     // สร้าง JWT Token
     public String generateToken(String username){
+        UserModel user = userservice.findByUsername(username);
         Map<String, Object> claims = new HashMap<>(); //จับคู่ "String" : "Value"
+        claims.put("role", user.getRoles());
         return Jwts.builder() //เทธอทสร้าง Jwt
                 .setClaims(claims) //เมธอทยัดข้อมูลลง Payload สามารถกำหนดเองได้
                 .setSubject(username) // เมธอทกำหนดชื่อผู้สร้าง jwt
@@ -80,5 +89,10 @@ public class JwtService {
         // userName.equals(userDetails.getUsername()) เปรียบเทียบชื่อผู้ใช้จาก Token กับชื่อผู้ใช้ใน UserDetails ที่ถูกส่งเข้ามา
         // !IsTokenExpired(token) ตรวจสอบว่า Token ยังไม่หมดอายุ
         return (userName.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+
+    public boolean validateToken(String token, String username){
+        final String userName = extractUsername(token);
+        return (userName.equals(username) && !isTokenExpired(token));
     }
 }
