@@ -3,12 +3,15 @@ package AuthenticationProcess.controller;
 import AuthenticationProcess.model.ListDataUserRes;
 import AuthenticationProcess.model.ListDataWebsiteRes;
 import AuthenticationProcess.model.UserModel;
+import AuthenticationProcess.model.WebsiteDetailsModel;
 import AuthenticationProcess.service.AdminService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,6 +26,7 @@ public class AdminController {
     @Autowired
     AdminService adminService;
 
+    // user
     @GetMapping("/findAllUser")
     public ListDataUserRes findAll() throws Exception {
             try {
@@ -46,6 +50,24 @@ public class AdminController {
         }
     }
 
+    // website
+    @PostMapping(value = {"/addnewweb"},consumes =
+            {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public String insertWeb(@RequestPart("websiteDetailsModel") WebsiteDetailsModel websiteDetailsModel,
+                            @RequestPart("image") MultipartFile image) throws Exception {
+        try {
+            String imageUrl = null;
+            if(image != null){
+                imageUrl = adminService.storeFile(image);
+                websiteDetailsModel.setImage(imageUrl);
+            }
+            adminService.createWebsite(websiteDetailsModel);
+            return "Success";
+        }catch (Exception e){
+            throw new Exception("Fail to execute: " + e.getMessage());
+        }
+
+    }
     @DeleteMapping("/website/{UID}")
     public ListDataWebsiteRes DeleteWebsiteById(@PathVariable String UID) throws Exception {
         try {

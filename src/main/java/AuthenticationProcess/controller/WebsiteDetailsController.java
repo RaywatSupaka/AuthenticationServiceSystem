@@ -28,24 +28,6 @@ public class WebsiteDetailsController {
     private WebsiteRepository websiteRepository;
 
 
-    @PostMapping(value = {"/addnewweb"},consumes =
-            {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public String insertWeb(@RequestPart("websiteDetailsModel")WebsiteDetailsModel websiteDetailsModel,
-                            @RequestPart("image") MultipartFile image) throws Exception {
-        try {
-            String imageUrl = null;
-            if(image != null){
-                imageUrl = websiteDetailsService.storeFile(image);
-                websiteDetailsModel.setImage(imageUrl);
-            }
-            websiteDetailsService.createWebsite(websiteDetailsModel);
-            return "Success";
-        }catch (Exception e){
-            throw new Exception("Fail to execute: " + e.getMessage());
-        }
-
-    }
-
     @GetMapping("/allWebsite")
     public ListDataWebsiteRes getWebsiteDetails() throws Exception {
         try {

@@ -26,23 +26,11 @@ import java.util.*;
 @Service
 public class WebsiteDetailsService {
 
-    @Value("public/images/")
-    private String uploadDir;
-
     @Autowired
     private WebsiteRepository websiteRepository;
 
 
-
     //service
-    public void createWebsite(WebsiteDetailsModel websiteDetailsModel) {
-        if(websiteDetailsModel == null){
-            throw new IllegalArgumentException("Please fill in all required information.\n");
-        }
-
-        WebsiteEntity website = toEntity(websiteDetailsModel);
-        websiteRepository.insert(website);
-    }
 
     public List<WebsiteDetailsModel> allWebsiteDetails() throws IOException {
         List<WebsiteEntity> listEntity = websiteRepository.findAll();
@@ -67,42 +55,7 @@ public class WebsiteDetailsService {
     }
 
     //support func
-    public  String storeFile( MultipartFile file){
-        try {
-            if (file.isEmpty()) {
-                throw new IllegalArgumentException("File is empty.");
-            }
 
-            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-            Date tmp = new Date();
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-            String timestamp = formatter.format(tmp);
-            String filename = timestamp + "_" + StringUtils.cleanPath(file.getOriginalFilename());
-            Path filePath = uploadPath.resolve(filename);
-
-            if (!Files.exists(uploadPath)){
-                Files.createDirectories(uploadPath);
-            }
-
-            Files.copy(file.getInputStream(), filePath , StandardCopyOption.REPLACE_EXISTING);
-            return  filePath.toString();
-        } catch (IOException e) {
-            throw new RuntimeException("Fail to store the file. \n", e);
-        }
-    }
-
-    private WebsiteEntity toEntity(WebsiteDetailsModel websiteDetailsModel) {
-        return WebsiteEntity.builder()
-                .wid(UUID.randomUUID().toString().split("-")[0])
-                .wname(websiteDetailsModel.getWname())
-                .local(websiteDetailsModel.getLocal())
-                .status(Integer.parseInt(websiteDetailsModel.getStatus()))
-                .description(websiteDetailsModel.getDescription())
-                .type(websiteDetailsModel.getType())
-                .tmp(new Date())
-                .img(websiteDetailsModel.getImage())
-                .build();
-    }
 
     private WebsiteDetailsModel toModel(WebsiteEntity websiteEntity) throws IOException{
         if(websiteEntity == null){
