@@ -22,4 +22,5 @@ public class UserWebsiteMockUp {
     private String address;
     private String roles;
     private Date ts;
+    private String image;
 }

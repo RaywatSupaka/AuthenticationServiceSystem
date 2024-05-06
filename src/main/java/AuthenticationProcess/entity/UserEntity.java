@@ -22,4 +22,5 @@ public class UserEntity {
     private String address;
     private String roles;
     private Date ts;
+    private String image;
 }
