@@ -1,27 +1,28 @@
 package AuthenticationProcess.entity;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.Generated;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.Length;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
 
-@Document(collection = "User")
+@Document(collection = "Image")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserEntity {
+@Builder
+public class ImageEntity {
+
     @Id
-    private String uid;
-    private String nid;
-    private String username;
-    private String password;
-    private int age;
-    private String address;
-    private String roles;
-    private Date ts;
-    private String image;
+    private String pid;
+    private String name;
+    private String type;
+    @Length(max = 50000000)
+    private byte[] imageByte;
+    private Date uploadDate;
+
 }

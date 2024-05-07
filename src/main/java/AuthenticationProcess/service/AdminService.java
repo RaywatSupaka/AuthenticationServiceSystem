@@ -1,10 +1,12 @@
 package AuthenticationProcess.service;
 
+import AuthenticationProcess.entity.ImageEntity;
 import AuthenticationProcess.entity.UserEntity;
 
 import AuthenticationProcess.entity.WebsiteEntity;
 import AuthenticationProcess.model.UserModel;
 import AuthenticationProcess.model.WebsiteDetailsModel;
+import AuthenticationProcess.repository.ImageRepository;
 import AuthenticationProcess.repository.UserRepository;
 import AuthenticationProcess.repository.WebsiteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,7 +38,8 @@ public class AdminService {
     UserRepository userRepository;
     @Autowired
     WebsiteRepository websiteRepository;
-
+    @Autowired
+    ImageRepository imageRepository;
     @Lazy
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -115,7 +121,7 @@ public class AdminService {
         websiteRepository.insert(website);
     }
 
-    public  String storeFile( MultipartFile file){
+    public  String storeFile1( MultipartFile file){
         try {
             if (file.isEmpty()) {
                 throw new IllegalArgumentException("File is empty.");
@@ -139,7 +145,49 @@ public class AdminService {
         }
     }
 
+
+    public String storeFile(MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                throw new IllegalArgumentException("File is empty.");
+            }
+
+            // Convert MultipartFile to byte array
+            byte[] fileData = file.getBytes();
+
+            // Generate unique filename based on timestamp
+            Date timestamp = new Date();
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+            String filename = formatter.format(timestamp) + "_" + StringUtils.cleanPath(file.getOriginalFilename());
+
+            // Save file data to MongoDB
+            ImageEntity imageEntity = ImageEntity.builder()
+                    .name(filename)
+                    .type(file.getContentType())
+                    .imageByte(fileData)
+                    .uploadDate(timestamp)
+                    .build();
+            imageRepository.save(imageEntity);
+
+            return filename;
+        } catch (IOException e) {
+            throw new RuntimeException("Fail to store the file. \n", e);
+        }
+    }
+
     // fc ช่วย
+
+    public static byte[] convertFileToByteArray(MultipartFile file) throws IOException {
+        byte[] buffer = new byte[1024];
+        try (InputStream inputStream = file.getInputStream();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+            return outputStream.toByteArray();
+        }
+    }
 
     private WebsiteEntity toEntity(WebsiteDetailsModel websiteDetailsModel) {
         return WebsiteEntity.builder()

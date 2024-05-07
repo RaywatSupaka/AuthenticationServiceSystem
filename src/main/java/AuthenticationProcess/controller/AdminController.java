@@ -51,8 +51,7 @@ public class AdminController {
     }
 
     // website
-    @PostMapping(value = {"/addnewweb"},consumes =
-            {MediaType.MULTIPART_FORM_DATA_VALUE})
+    @PostMapping(value = {"/addnewweb"},consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public String insertWeb(@RequestPart("websiteDetailsModel") WebsiteDetailsModel websiteDetailsModel,
                             @RequestPart("image") MultipartFile image) throws Exception {
         try {
