@@ -41,10 +41,16 @@ public class AdminController {
             }
     }
 
-    @DeleteMapping("/user/{UID}")
-    public String DeleteUserById(@PathVariable String UID) throws Exception {
+    @DeleteMapping("/userdel/{UID}")
+    public ListDataUserRes DeleteUserById(@PathVariable String UID) throws Exception {
         try {
-            return adminService.DeleteUserById(UID);
+            boolean delstatus = adminService.DeleteUserById(UID);
+
+            if (delstatus) {
+                return new ListDataUserRes("Delete Success",true);
+            } else {
+                return new ListDataUserRes("Invalid id: " + UID,false);
+            }
         }catch (Exception e){
             throw new Exception("Fail to execute :" + e.getMessage());
         }
@@ -52,21 +58,25 @@ public class AdminController {
 
     // website
     @PostMapping(value = {"/addnewweb"},consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public String insertWeb(@RequestPart("websiteDetailsModel") WebsiteDetailsModel websiteDetailsModel,
+    public ListDataWebsiteRes insertWeb(@RequestPart("websiteDetailsModel") WebsiteDetailsModel websiteDetailsModel,
                             @RequestPart("image") MultipartFile image) throws Exception {
         try {
             String imageUrl = null;
             if(image != null){
                 imageUrl = adminService.storeFile(image);
-                websiteDetailsModel.setImage(imageUrl);
+                if (!imageUrl.equals("Please Try Again")) {
+                    websiteDetailsModel.setImage(imageUrl);
+                    adminService.createWebsite(websiteDetailsModel);
+                }else {
+                    return new ListDataWebsiteRes(imageUrl,false);
+                }
             }
-            adminService.createWebsite(websiteDetailsModel);
-            return "Success";
+            return new ListDataWebsiteRes("Success",true);
         }catch (Exception e){
             throw new Exception("Fail to execute: " + e.getMessage());
         }
-
     }
+
     @DeleteMapping("/website/{UID}")
     public ListDataWebsiteRes DeleteWebsiteById(@PathVariable String UID) throws Exception {
         try {

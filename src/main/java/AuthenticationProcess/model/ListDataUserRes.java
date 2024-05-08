@@ -16,6 +16,11 @@ public class ListDataUserRes {
 
     public ListDataUserRes(){}
 
+    public ListDataUserRes(String message , boolean result ){
+        this.message = message;
+        this.result = result;
+        this.data = data;
+    }
     public ListDataUserRes(String message , boolean result , List<UserModel> data){
         this.message = message;
         this.result = result;

@@ -39,7 +39,7 @@ public class UserService implements UserDetailsService {
         if (!validationMessage.isEmpty()) {
             return validationMessage;
         }else if (validateduplicate) {
-            return "Username is already used ";
+            return "Nid is already used ";
         }else {
             UserEntity userinfo = new UserEntity();
 
@@ -50,7 +50,11 @@ public class UserService implements UserDetailsService {
             //userinfo.setPassword(user.getPassword());
             userinfo.setAge(user.getAge());
             userinfo.setAddress(user.getAddress());
-            userinfo.setRoles("USER");
+            if(user.getRoles() == null || user.getRoles().isEmpty()){
+                userinfo.setRoles("USER");
+            }else {
+                userinfo.setRoles(user.getRoles());
+            }
             userinfo.setTs(new Date());
 
             userRepository.save(userinfo);
@@ -102,7 +106,7 @@ public class UserService implements UserDetailsService {
 
 
     public boolean validateduplicate(UserModel user){
-        Optional<UserEntity> users = userRepository.findByUsername(user.getUsername());
+        Optional<UserEntity> users = userRepository.findByNid(user.getNid());
         return users.isPresent();
     }
 

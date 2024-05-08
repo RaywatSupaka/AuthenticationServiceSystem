@@ -37,18 +37,6 @@ public class WebsiteDetailsService {
 
     //service
 
-    public List<WebsiteDetailsModel> allWebsiteDetails1() throws IOException {
-        List<WebsiteEntity> listEntity = websiteRepository.findAll();
-        List<WebsiteDetailsModel> listModel = new ArrayList<>();
-
-        for(WebsiteEntity entity : listEntity){
-            WebsiteDetailsModel model = toModel(entity);
-            listModel.add(model);
-        }
-        return listModel;
-    }
-
-
     public List<WebsiteDetailsModel> allWebsiteDetails() throws IOException {
         List<WebsiteEntity> listEntity = websiteRepository.findAll();
         List<WebsiteDetailsModel> listModel = new ArrayList<>();

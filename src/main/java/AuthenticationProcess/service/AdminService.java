@@ -31,9 +31,6 @@ import java.util.*;
 @Service
 public class AdminService {
 
-    @Value("public/images/")
-    private String uploadDir;
-
     @Autowired
     UserRepository userRepository;
     @Autowired
@@ -54,15 +51,15 @@ public class AdminService {
         return modelList;
     }
 
-    public String DeleteUserById(String id) {
+    public boolean DeleteUserById(String id) {
         Optional<UserEntity> user = userRepository.findById(id);
         if (user.isPresent()) {
             UserEntity userDel = user.get();
             userRepository.delete(userDel);
 
-            return "Delete Success";
+            return true;
         } else {
-            return "Invalid id: " + id;
+            return false;
         }
     }
 
@@ -121,30 +118,6 @@ public class AdminService {
         websiteRepository.insert(website);
     }
 
-    public  String storeFile1( MultipartFile file){
-        try {
-            if (file.isEmpty()) {
-                throw new IllegalArgumentException("File is empty.");
-            }
-
-            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-            Date tmp = new Date();
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-            String timestamp = formatter.format(tmp);
-            String filename = timestamp + "_" + StringUtils.cleanPath(file.getOriginalFilename());
-            Path filePath = uploadPath.resolve(filename);
-
-            if (!Files.exists(uploadPath)){
-                Files.createDirectories(uploadPath);
-            }
-
-            Files.copy(file.getInputStream(), filePath , StandardCopyOption.REPLACE_EXISTING);
-            return  filePath.toString();
-        } catch (IOException e) {
-            throw new RuntimeException("Fail to store the file. \n", e);
-        }
-    }
-
 
     public String storeFile(MultipartFile file) {
         try {
@@ -160,16 +133,20 @@ public class AdminService {
             SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
             String filename = formatter.format(timestamp) + "_" + StringUtils.cleanPath(file.getOriginalFilename());
 
-            // Save file data to MongoDB
-            ImageEntity imageEntity = ImageEntity.builder()
-                    .name(filename)
-                    .type(file.getContentType())
-                    .imageByte(fileData)
-                    .uploadDate(timestamp)
-                    .build();
-            imageRepository.save(imageEntity);
+            ImageEntity existingImage = imageRepository.findByName(filename);
+            if (existingImage == null) {
+                ImageEntity imageEntity = ImageEntity.builder()
+                        .name(filename)
+                        .type(file.getContentType())
+                        .imageByte(fileData)
+                        .uploadDate(timestamp)
+                        .build();
+                imageRepository.save(imageEntity);
 
-            return filename;
+                return filename;
+            }else {
+                return "Please Try Again";
+            }
         } catch (IOException e) {
             throw new RuntimeException("Fail to store the file. \n", e);
         }
