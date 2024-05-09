@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 LABEL authors="thewh"
 
-FROM maven:3.8.8-openjdk-8 AS build
+FROM maven:3.9.5-openjdk-21 AS build
 COPY . .
 RUN mvn clean package -DskipTests
 
