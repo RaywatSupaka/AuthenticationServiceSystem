@@ -6,7 +6,7 @@ COPY . .
 RUN mvn clean package -DskipTests
 
 FROM openjdk:17.0.1-jdk-slim
-COPY --from=build /target/authenticationService.jar /authenticationProcess.jar
+COPY --from=build /target/*.jar /app.jar
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","/authenticationProcess.jar"]
+ENTRYPOINT ["java","-jar","/app.jar"]
 
