@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,7 +63,6 @@ public class UserController {
         } catch (AuthenticationException ex) {
             return new JwtResponse("Login Fail", false);
         }
-
     }
 
     @Operation(  // รายละเอียดเอาไว้แจ้งกับ AIP แต่ละเส้น
@@ -101,19 +101,43 @@ public class UserController {
 
 
     @GetMapping("/validate")
-    public String validateToken(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity validateToken(@RequestHeader("Authorization") String authHeader) {
         String userName = null;
-        boolean isValid = false; // กำหนดให้ isValid เป็นเท็จเริ่มต้น
+        boolean isValid = false;
 
         if(authHeader != null && authHeader.startsWith("Bearer")){
-            String token = authHeader.substring(7); // ดึง token จาก Authorization header
-            userName = jwtService.extractUsername(token); // ดึงชื่อผู้ใช้จาก token
-            isValid = jwtService.validateToken(token, userName); // ตรวจสอบความถูกต้องของ token
+            String token = authHeader.substring(7);
+            if (jwtService.isTokenBlocked(token)) {
+                return ResponseEntity.ok("Token is blocked");
+            }
+            userName = jwtService.extractUsername(token);
+            isValid = jwtService.validateToken(token, userName);
         }
         if (isValid) {
-            return "Token is valid.";
+            return ResponseEntity.ok("Logout successful");
         } else {
-            return "Token is not valid.";
+            return ResponseEntity.badRequest().body("Invalid or expired token");
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity logout(@RequestHeader("Authorization") String authHeader) {
+        String userName = null;
+        boolean isValid = false;
+
+        if(authHeader != null && authHeader.startsWith("Bearer")){
+            String token = authHeader.substring(7);
+            userName = jwtService.extractUsername(token);
+            isValid = jwtService.validateToken(token, userName);
+            // ตรวจสอบ Token
+            if (isValid) {
+                jwtService.blockToken(token);
+                return ResponseEntity.ok("Logout successful");
+            } else {
+                return ResponseEntity.badRequest().body("Invalid or expired token");
+            }
+        } else {
+            return ResponseEntity.badRequest().body("Authorization header is missing or invalid");
         }
     }
 

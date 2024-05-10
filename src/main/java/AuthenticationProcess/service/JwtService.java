@@ -13,10 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 
 @Component
@@ -95,4 +92,17 @@ public class JwtService {
         final String userName = extractUsername(token);
         return (userName.equals(username) && !isTokenExpired(token));
     }
+
+    //block token
+    private Set<String> blockedTokens = new HashSet<>();
+
+    public void blockToken(String token) {
+        blockedTokens.add(token);
+    }
+
+    public boolean isTokenBlocked(String token) {
+        return blockedTokens.contains(token);
+    }
+
+
 }
