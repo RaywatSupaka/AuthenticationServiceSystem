@@ -1,8 +1,16 @@
 package AuthenticationProcess.service;
 
 import AuthenticationProcess.entity.UserEntity;
+import AuthenticationProcess.entity.UserWebsiteStatusEntity;
+import AuthenticationProcess.entity.WebsiteEntity;
 import AuthenticationProcess.model.UserModel;
+import AuthenticationProcess.model.UserWebsiteStatusModel;
 import AuthenticationProcess.repository.UserRepository;
+import AuthenticationProcess.repository.UserWebsiteStatusRepository;
+import AuthenticationProcess.repository.WebsiteRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -11,17 +19,20 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService implements UserDetailsService {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private WebsiteRepository websiteRepository;
     @Lazy
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserWebsiteStatusRepository userWebsiteStatusRepository;
 
     // test Auth Jwt Service
     @Override
@@ -157,5 +168,102 @@ public class UserService implements UserDetailsService {
 
         return validationMessage.toString();
     }
+
+
+
+    public boolean saveStatusStart(String userNid) {
+        Optional<UserEntity> user = userRepository.findByNid(userNid);
+        List<WebsiteEntity> websites = websiteRepository.findAll();
+
+        if (user == null || user.isEmpty()) {
+            return false;
+        }
+
+        List<String> websiteIds = websites.stream()
+                .map(WebsiteEntity::getWid)
+                .collect(Collectors.toList());
+
+        Map<String, Boolean> websiteStatusMap = new HashMap<>();
+        for (String websiteId : websiteIds) {
+            websiteStatusMap.put(websiteId, false);
+        }
+
+        String jsonWebsiteStatus;
+        try {
+            jsonWebsiteStatus = new ObjectMapper().writeValueAsString(websiteStatusMap);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        UserWebsiteStatusEntity userWebsiteStatus = new UserWebsiteStatusEntity();
+        userWebsiteStatus.setUserId(userNid);
+        userWebsiteStatus.setWebsiteId(jsonWebsiteStatus);
+
+        userWebsiteStatusRepository.save(userWebsiteStatus);
+        return true;
+    }
+
+    public boolean updateStatus(String userNID, String websiteId) {
+        try {
+            UserWebsiteStatusEntity userNid = userWebsiteStatusRepository.findByUserId(userNID);
+
+            if (userNid != null) {
+                Object websiteIdJson = userNid.getWebsiteId();
+                String websiteIdString = websiteIdJson.toString();
+
+                ObjectMapper objectMapper = new ObjectMapper();
+                Map<String, Boolean> websiteIdMap = objectMapper.readValue(websiteIdString, new TypeReference<Map<String, Boolean>>() {});
+
+                websiteIdMap.put(websiteId, true);
+
+                String updatedWebsiteIdJson = objectMapper.writeValueAsString(websiteIdMap);
+
+                userNid.setWebsiteId(updatedWebsiteIdJson);
+                userWebsiteStatusRepository.save(userNid);
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean checkStatus(String userNID, String websiteId) {
+        try {
+            UserWebsiteStatusEntity userNid = userWebsiteStatusRepository.findByUserId(userNID);
+
+            if (userNid != null) {
+                Object websiteIdJson = userNid.getWebsiteId();
+                String websiteIdString = websiteIdJson.toString();
+
+                ObjectMapper objectMapper = new ObjectMapper();
+                Map<String, Boolean> websiteIdMap = objectMapper.readValue(websiteIdString, new TypeReference<Map<String, Boolean>>() {});
+
+                // เรียกใช้ฟังก์ชันเพื่อตรวจสอบว่า websiteId นี้มีค่าเป็น true หรือไม่
+                boolean isTrue = checkIfTrue(websiteIdMap, websiteId);
+
+                return isTrue;
+            } else {
+                return false; // บอกว่าไม่พบ userNID ที่ระบุ
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false; // บอกว่าเกิดข้อผิดพลาด
+        }
+    }
+
+    // ฟังก์ชันตรวจสอบว่าค่าใน Map เป็น true หรือไม่
+    private boolean checkIfTrue(Map<String, Boolean> websiteIdMap, String websiteId) {
+        // ตรวจสอบว่า websiteId นี้มีค่าเป็น true อยู่แล้วหรือไม่
+        if (websiteIdMap.containsKey(websiteId) && websiteIdMap.get(websiteId)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 
 }

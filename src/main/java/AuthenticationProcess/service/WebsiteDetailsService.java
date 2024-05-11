@@ -1,12 +1,16 @@
 package AuthenticationProcess.service;
 
 import AuthenticationProcess.entity.ImageEntity;
+import AuthenticationProcess.entity.UserWebsiteStatusEntity;
 import AuthenticationProcess.entity.WebsiteEntity;
 import AuthenticationProcess.model.WebsiteDetailsModel;
 import AuthenticationProcess.repository.ImageRepository;
+import AuthenticationProcess.repository.UserWebsiteStatusRepository;
 import AuthenticationProcess.repository.WebsiteRepository;
 import java.text.SimpleDateFormat;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -24,17 +28,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class WebsiteDetailsService {
 
     @Autowired
     private WebsiteRepository websiteRepository;
-
     @Autowired
     private ImageRepository imageRepository;
-
-
+    @Autowired
+    private UserWebsiteStatusRepository userWebsiteStatusRepository;
     //service
 
     public List<WebsiteDetailsModel> allWebsiteDetails() throws IOException {
@@ -83,6 +87,42 @@ public class WebsiteDetailsService {
             System.out.println("ไม่พบไฟล์รูปภาพที่ค้นหา");
         }
         return model;
+    }
+
+    public List<WebsiteDetailsModel> findWebsitesWithTrueStatus(String userNID) {
+        try {
+            UserWebsiteStatusEntity userWebsiteStatus = userWebsiteStatusRepository.findByUserId(userNID);
+
+            if (userWebsiteStatus != null) {
+                Object websiteIdJson = userWebsiteStatus.getWebsiteId();
+                String websiteIdString = websiteIdJson.toString();
+
+                ObjectMapper objectMapper = new ObjectMapper();
+                Map<String, Boolean> websiteIdMap = objectMapper.readValue(websiteIdString, new TypeReference<Map<String, Boolean>>() {});
+
+                List<String> trueWebsiteIds = websiteIdMap.entrySet().stream()
+                        .filter(Map.Entry::getValue)
+                        .map(Map.Entry::getKey)
+                        .collect(Collectors.toList());
+
+                List<WebsiteEntity> listEntity = websiteRepository.findAllById(trueWebsiteIds);
+                List<WebsiteDetailsModel> listModel = new ArrayList<>();
+
+                for(WebsiteEntity entity : listEntity){
+                    WebsiteDetailsModel model = toModel(entity);
+                    listModel.add(model);
+                }
+
+                return listModel;
+
+            } else {
+                // Handle case where userNID not found
+                return Collections.emptyList();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
     }
 
 }

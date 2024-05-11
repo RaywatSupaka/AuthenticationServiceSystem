@@ -26,7 +26,8 @@ public class JwtService {
     public String generateToken(String username){
         UserModel user = userservice.findByUsername(username);
         Map<String, Object> claims = new HashMap<>(); //จับคู่ "String" : "Value"
-        claims.put("role", user.getRoles());
+        claims.put("roles", user.getRoles());
+        claims.put("nid", user.getNid());
         return Jwts.builder() //เทธอทสร้าง Jwt
                 .setClaims(claims) //เมธอทยัดข้อมูลลง Payload สามารถกำหนดเองได้
                 .setSubject(username) // เมธอทกำหนดชื่อผู้สร้าง jwt
@@ -67,6 +68,16 @@ public class JwtService {
         return extractClaim(token,Claims::getSubject); // Claims::getSubject อ้างอิงถึง Subject ที่อยู่ใน token
     }
 
+    public String extractRoles(String token) {
+        final Claims claims = extractAllClaims(token);
+        return claims.get("roles").toString();
+    }
+
+    public String extractNid(String token) {
+        final Claims claims = extractAllClaims(token);
+        return claims.get("nid").toString();
+    }
+
     // ดึงวันที่ Token หมดอายุ
     public Date extractExpiration(String token){
         return extractClaim(token,Claims::getExpiration); // Claims::getExpiration อ้างอิงถึง Expiration ที่อยู่ใน token
@@ -88,9 +99,9 @@ public class JwtService {
         return (userName.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    public boolean validateToken(String token, String username){
+    public boolean validateToken(String token, String username) {
         final String userName = extractUsername(token);
-        return (userName.equals(username) && !isTokenExpired(token));
+        return (userName.equals(username) && !isTokenExpired(token) && !isTokenBlocked(token));
     }
 
     //block token

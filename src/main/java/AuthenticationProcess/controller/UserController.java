@@ -1,11 +1,12 @@
 package AuthenticationProcess.controller;
 
 import AuthenticationProcess.entity.AuthRequest;
-import AuthenticationProcess.model.DataRes;
-import AuthenticationProcess.model.JwtResponse;
-import AuthenticationProcess.model.UserModel;
+import AuthenticationProcess.entity.UserWebsiteStatusEntity;
+import AuthenticationProcess.model.*;
+import AuthenticationProcess.repository.UserWebsiteStatusRepository;
 import AuthenticationProcess.service.JwtService;
 import AuthenticationProcess.service.UserService;
+import AuthenticationProcess.service.WebsiteDetailsService;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -23,6 +24,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -37,7 +39,11 @@ public class UserController {
     @Autowired
     private AuthenticationManager authenticationManager;
     @Autowired
+    private UserWebsiteStatusRepository userWebsiteStatusRepository;
+    @Autowired
     private JwtService jwtService;
+    @Autowired
+    private WebsiteDetailsService websiteDetailsService;
 
     @Operation(  // รายละเอียดเอาไว้แจ้งกับ AIP แต่ละเส้น
             description = "Get Token For Another API",
@@ -75,6 +81,7 @@ public class UserController {
         try {
             String dataRes = userservice.AddUser(user);
             if (dataRes.isEmpty()) {
+                userservice.saveStatusStart(user.getNid());
                 return ResponseEntity.ok("User added successfully.");
             } else {
                 // กรณีมีข้อผิดพลาด
@@ -91,6 +98,7 @@ public class UserController {
 
     @GetMapping("/findById/{username}")
     public UserModel findByUID(@PathVariable String username){
+
         return userservice.findByUsername(username);
     }
 
@@ -101,24 +109,53 @@ public class UserController {
 
 
     @GetMapping("/validate")
-    public ResponseEntity validateToken(@RequestHeader("Authorization") String authHeader) {
+    public JwtResponse validateToken(@RequestHeader("Authorization") String authHeader) {
         String userName = null;
         boolean isValid = false;
 
         if(authHeader != null && authHeader.startsWith("Bearer")){
             String token = authHeader.substring(7);
             if (jwtService.isTokenBlocked(token)) {
-                return ResponseEntity.ok("Token is blocked");
+                return new JwtResponse("Token Was Blocked",false);
             }
             userName = jwtService.extractUsername(token);
             isValid = jwtService.validateToken(token, userName);
-        }
-        if (isValid) {
-            return ResponseEntity.ok("Logout successful");
+
+            if (isValid) {
+                return new JwtResponse("validate success", true);
+            } else {
+                return new JwtResponse("Invalid or expired token",false);
+            }
         } else {
-            return ResponseEntity.badRequest().body("Invalid or expired token");
+            return new JwtResponse("Invalid Token",false);
         }
     }
+
+    @GetMapping("/extractRoles")
+    public JwtResponse extractRoles(@RequestHeader("Authorization") String authHeader) {
+        String userRole = null;
+        String userName = null;
+        boolean isValid = false;
+
+        if(authHeader != null && authHeader.startsWith("Bearer")){
+            String token = authHeader.substring(7);
+            if (jwtService.isTokenBlocked(token)) {
+                return new JwtResponse("Token Was Blocked",false);
+            }
+            userName = jwtService.extractUsername(token);
+            isValid = jwtService.validateToken(token, userName);
+            userRole = jwtService.extractRoles(token);
+
+            if (isValid) {
+                return new JwtResponse(userRole, true);
+            } else {
+                return new JwtResponse("Invalid or expired token",false);
+            }
+        } else {
+            return new JwtResponse("Invalid Token",false);
+        }
+    }
+
 
     @PostMapping("/logout")
     public ResponseEntity logout(@RequestHeader("Authorization") String authHeader) {
@@ -139,6 +176,56 @@ public class UserController {
         } else {
             return ResponseEntity.badRequest().body("Authorization header is missing or invalid");
         }
+    }
+
+    @PostMapping("/showallStatusUser")
+    public List<UserWebsiteStatusEntity> showallStatusUser() throws Exception {
+        try {
+            List<UserWebsiteStatusEntity> dataRes = userWebsiteStatusRepository.findAll();
+            return dataRes;
+        }catch (Exception e){
+            throw new Exception("Failed to execute : " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/updateStatus/{userId}/{websiteId}")
+    public boolean updateStatus(@PathVariable String userId, @PathVariable String websiteId) {
+        return userservice.updateStatus(userId, websiteId);
+    }
+
+    @GetMapping("/checkStatus/{websiteId}")
+    public ListDataWebsiteRes checkStatus(@RequestHeader("Authorization") String authHeader, @PathVariable String websiteId) throws Exception {
+        try {
+            String userNid = null;
+            String userName = null;
+            boolean isValid = false;
+
+            if(authHeader != null && authHeader.startsWith("Bearer")){
+                String token = authHeader.substring(7);
+                if (jwtService.isTokenBlocked(token)) {
+                    return new ListDataWebsiteRes("Token Was Blocked",false);
+                }
+                userName = jwtService.extractUsername(token);
+                isValid = jwtService.validateToken(token, userName);
+                userNid = jwtService.extractNid(token);
+
+                if (isValid) {
+                    boolean isTrue = userservice.checkStatus(userNid, websiteId);
+                    if (isTrue) {
+                        return new ListDataWebsiteRes("Is Member",true);
+                    } else {
+                        return new ListDataWebsiteRes("Isn't Member",false);
+                    }
+                } else {
+                    return new ListDataWebsiteRes("Invalid or expired token",false);
+                }
+            } else {
+                return new ListDataWebsiteRes("Invalid Token",false);
+            }
+        }catch (Exception e){
+            throw new Exception("Failed to execute : " + e.getMessage());
+        }
+
     }
 
 

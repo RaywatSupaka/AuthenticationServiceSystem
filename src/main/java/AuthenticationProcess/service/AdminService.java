@@ -3,14 +3,18 @@ package AuthenticationProcess.service;
 import AuthenticationProcess.entity.ImageEntity;
 import AuthenticationProcess.entity.UserEntity;
 
+import AuthenticationProcess.entity.UserWebsiteStatusEntity;
 import AuthenticationProcess.entity.WebsiteEntity;
 import AuthenticationProcess.model.UserModel;
 import AuthenticationProcess.model.WebsiteDetailsModel;
 import AuthenticationProcess.repository.ImageRepository;
 import AuthenticationProcess.repository.UserRepository;
+import AuthenticationProcess.repository.UserWebsiteStatusRepository;
 import AuthenticationProcess.repository.WebsiteRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,9 +28,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AdminService {
@@ -37,6 +41,8 @@ public class AdminService {
     WebsiteRepository websiteRepository;
     @Autowired
     ImageRepository imageRepository;
+    @Autowired
+    private UserWebsiteStatusRepository userWebsiteStatusRepository;
     @Lazy
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -44,7 +50,7 @@ public class AdminService {
     public List<UserModel> FindAll() throws IOException {
         List<UserEntity> entityList = userRepository.findAll();
         List<UserModel> modelList = new ArrayList<>();
-        for(UserEntity entity: entityList){
+        for (UserEntity entity : entityList) {
             UserModel model = toModel(entity);
             modelList.add(model);
         }
@@ -56,6 +62,11 @@ public class AdminService {
         if (user.isPresent()) {
             UserEntity userDel = user.get();
             userRepository.delete(userDel);
+
+            UserWebsiteStatusEntity userWebsiteStatus = userWebsiteStatusRepository.findByUserId(userDel.getNid());
+            if (userWebsiteStatus != null) {
+                userWebsiteStatusRepository.delete(userWebsiteStatus);
+            }
 
             return true;
         } else {
@@ -88,10 +99,10 @@ public class AdminService {
         }
     }
 
-    public UserModel findByUsername(String username){
+    public UserModel findByUsername(String username) {
         Optional<UserEntity> userInfo = userRepository.findByUsername(username);
 
-        if(userInfo.isPresent()){
+        if (userInfo.isPresent()) {
             UserEntity user = userInfo.get();
 
             UserModel userRes = new UserModel();
@@ -110,7 +121,7 @@ public class AdminService {
     }
 
     public void createWebsite(WebsiteDetailsModel websiteDetailsModel) {
-        if(websiteDetailsModel == null){
+        if (websiteDetailsModel == null) {
             throw new IllegalArgumentException("Please fill in all required information.\n");
         }
 
@@ -144,7 +155,7 @@ public class AdminService {
                 imageRepository.save(imageEntity);
 
                 return filename;
-            }else {
+            } else {
                 return "Please Try Again";
             }
         } catch (IOException e) {
@@ -180,11 +191,11 @@ public class AdminService {
     }
 
     private UserModel toModel(UserEntity userEntity) throws IOException {
-        if(userEntity == null){
+        if (userEntity == null) {
             throw new IllegalArgumentException("Invalid User: ");
         }
 
-        UserModel model =  new UserModel();
+        UserModel model = new UserModel();
         model.setUid(userEntity.getUid());
         model.setNid(userEntity.getNid());
         model.setUsername(userEntity.getUsername());
@@ -195,5 +206,69 @@ public class AdminService {
         return model;
     }
 
+    public boolean saveStatusStartForNewWebsite() {
+        List<UserEntity> users = userRepository.findAll();
+        List<WebsiteEntity> websites = websiteRepository.findAll();
+
+        for (UserEntity user : users) {
+            List<String> websiteIds = websites.stream()
+                    .map(WebsiteEntity::getWid)
+                    .collect(Collectors.toList());
+
+            Map<String, Boolean> websiteStatusMap = new HashMap<>();
+            for (String websiteId : websiteIds) {
+                websiteStatusMap.put(websiteId, false);
+            }
+
+            String jsonWebsiteStatus;
+            try {
+                jsonWebsiteStatus = new ObjectMapper().writeValueAsString(websiteStatusMap);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace(); // แสดง error กรณีไม่สามารถแปลงเป็น JSON ได้
+                return false;
+            }
+
+            // ค้นหา userWebsiteStatus ที่มี userId เท่ากับ nid ของ user
+            UserWebsiteStatusEntity existingUserWebsiteStatus = userWebsiteStatusRepository.findByUserId(user.getNid());
+
+            // ถ้ามี userWebsiteStatus ที่เก่าอยู่แล้ว
+            if (existingUserWebsiteStatus != null) {
+                existingUserWebsiteStatus.setWebsiteId(jsonWebsiteStatus); // กำหนดค่า websiteId ใหม่
+                userWebsiteStatusRepository.save(existingUserWebsiteStatus); // บันทึกการเปลี่ยนแปลง
+            }
+        }
+
+        return true;
+    }
+    public boolean deleteStatusStartForNewWebsite(String uid) {
+        try {
+            List<UserWebsiteStatusEntity> userWebsiteStatusList = userWebsiteStatusRepository.findAll();
+            for (UserWebsiteStatusEntity userWebsiteStatus : userWebsiteStatusList) {
+                Object websiteIdJson = userWebsiteStatus.getWebsiteId();
+                // แปลง JSON string เป็น string ก่อน
+                String websiteIdString = websiteIdJson.toString();
+                // แปลง string เป็น Map
+                ObjectMapper objectMapper = new ObjectMapper();
+                Map<String, Boolean> websiteIdMap = objectMapper.readValue(websiteIdString, new TypeReference<Map<String, Boolean>>() {});
+                // ตรวจสอบว่ามี uid อยู่ใน Map หรือไม่
+                if (websiteIdMap.containsKey(uid)) {
+                    // ลบ uid ออกจาก Map
+                    websiteIdMap.remove(uid);
+
+                    // แปลง Map กลับเป็น JSON string
+                    String updatedWebsiteIdJson = objectMapper.writeValueAsString(websiteIdMap);
+
+                    // อัพเดทข้อมูลใหม่ลงใน UserWebsiteStatusEntity และบันทึกลงในฐานข้อมูล
+                    userWebsiteStatus.setWebsiteId(updatedWebsiteIdJson);
+                    userWebsiteStatusRepository.save(userWebsiteStatus);
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 }
+

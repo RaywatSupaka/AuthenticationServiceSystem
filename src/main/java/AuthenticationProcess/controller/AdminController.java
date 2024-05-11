@@ -67,6 +67,8 @@ public class AdminController {
                 if (!imageUrl.equals("Please Try Again")) {
                     websiteDetailsModel.setImage(imageUrl);
                     adminService.createWebsite(websiteDetailsModel);
+
+                    adminService.saveStatusStartForNewWebsite();
                 }else {
                     return new ListDataWebsiteRes(imageUrl,false);
                 }
@@ -80,8 +82,9 @@ public class AdminController {
     @DeleteMapping("/website/{UID}")
     public ListDataWebsiteRes DeleteWebsiteById(@PathVariable String UID) throws Exception {
         try {
+            boolean check = adminService.deleteStatusStartForNewWebsite(UID);
             boolean delstatus = adminService.DeleteWebsiteById(UID);
-            if (delstatus) {
+            if (delstatus && check) {
                 return new ListDataWebsiteRes("Delete Success",true);
             } else {
                 return new ListDataWebsiteRes("Invalid id: " + UID,false);
